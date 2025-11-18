@@ -14,7 +14,8 @@ from routes.fan import fan_bp       # Import the new fan blueprint
 from src.system import INCLUDES_DIR, LEAGUE_LOGO_FILENAME # Import INCLUDES_DIR and LEAGUE_LOGO_FILENAME
 
 app = Flask(__name__, template_folder='../templates')
-app.config['SECRET_KEY'] = 'a_very_secret_key_for_flash_messages'
+# Use environment variable for SECRET_KEY, fallback to default for development
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_flash_messages')
 # Configure UPLOAD_FOLDER to be the 'includes' directory within the project root
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, INCLUDES_DIR)
 

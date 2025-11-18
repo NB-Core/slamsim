@@ -17,11 +17,42 @@ SlamSim! is a web-based application designed for fantasy wrestling bookers and f
 
 Follow these instructions to get a local copy of SlamSim! up and running on your system.
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+The easiest way to run SlamSim! is using Docker Desktop:
+
+1.  **Prerequisites:** Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+2.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/ironmangary/slamsim.git](https://github.com/ironmangary/slamsim.git)
+    cd slamsim
+    ```
+
+3.  **Set up environment:**
+    ```bash
+    cp .env.template .env
+    # Edit .env and set your SECRET_KEY
+    ```
+
+4.  **Start with Docker Compose:**
+    ```bash
+    docker-compose up -d
+    ```
+
+5.  **Access the app:** Open `http://localhost:5000` in your browser
+
+📖 **For detailed Docker instructions, see [DOCKER.md](DOCKER.md)**
+
+### Alternative: Manual Installation
+
+If you prefer to run without Docker:
+
+#### Prerequisites
 
 You will need Python 3 and Pip installed on your system.
 
-### Installation
+#### Installation
 
 1.  **Clone the repository:**
     ```bash

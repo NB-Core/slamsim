@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info
+dist
+build
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+ss_linux_env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!readme.md
+history.md
+
+# Logs
+*.log
+
+# Test data
+data/
+includes/tmp/
+
+# Config files with sensitive data
+config.ini
+secrets.json
+.aider*
+
+# Temporary files
+tmp/
