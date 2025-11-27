@@ -7,8 +7,9 @@ from src.divisions import load_divisions
 from src.events import load_events, get_event_by_name, load_event_summary_content, get_event_by_slug
 import markdown
 from src.segments import load_segments, get_match_by_id, _slugify # Import _slugify for event_slug
-from src.belts import load_belts, get_belt_by_id, load_history_for_belt
+from src.belts import load_belts, get_belt_by_id, load_history_for_belt, get_belt_by_name
 from src.news import load_news_posts, get_news_post_by_id
+from src.date_utils import get_current_working_date # Import the new utility
 
 fan_bp = Blueprint('fan', __name__, url_prefix='/fan')
 
@@ -44,6 +45,8 @@ def belt_history(belt_id):
     history = load_history_for_belt(belt_id)
     history.sort(key=lambda r: datetime.datetime.strptime(r['Date_Won'], '%Y-%m-%d'), reverse=True)
 
+    current_working_date = get_current_working_date() # Use the new utility function
+    
     for reign in history:
         date_won = datetime.datetime.strptime(reign['Date_Won'], '%Y-%m-%d')
         date_lost_str = reign.get('Date_Lost')
@@ -51,12 +54,18 @@ def belt_history(belt_id):
         if date_lost_str:
             date_lost = datetime.datetime.strptime(date_lost_str, '%Y-%m-%d')
         else:
-            # Use current date for active reigns, ensuring it's a datetime.datetime object
-            date_lost = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
+            # Use current_working_date for active reigns
+            date_lost = datetime.datetime.combine(current_working_date, datetime.time.min)
         
         reign['Days'] = (date_lost - date_won).days
 
-    return render_template('fan/belt_history.html', belt=belt, history=history, prefs=prefs)
+    # Add note about game date if applicable
+    if prefs.get('game_date_mode') == 'latest-event-date':
+        game_date_note = f"As of {current_working_date.strftime('%Y-%m-%d')}"
+    else:
+        game_date_note = None
+
+    return render_template('fan/belt_history.html', belt=belt, history=history, prefs=prefs, game_date_note=game_date_note)
 
 def _sort_key_ignore_the(name):
     """Returns a sort key that ignores a leading 'The '."""
@@ -146,6 +155,14 @@ def view_wrestler(wrestler_name):
         flash(f"Wrestler '{wrestler_name}' not found.", 'danger')
         return redirect(url_for('fan.roster'))
 
+    # Add champion_title_display for individual wrestler view
+    if wrestler.get('Belt'):
+        belt_obj = get_belt_by_name(wrestler['Belt'])
+        if belt_obj:
+            wrestler['current_champion_title_display'] = belt_obj.get('Champion_Title', 'Champion')
+        else:
+            wrestler['current_champion_title_display'] = wrestler['Belt'] # Fallback to belt name
+
     # Calculate total record
     singles_wins = int(wrestler.get('Singles_Wins', 0))
     singles_losses = int(wrestler.get('Singles_Losses', 0))
@@ -171,6 +188,14 @@ def view_tagteam(tagteam_name):
     if not tagteam:
         flash(f"Tag Team '{tagteam_name}' not found.", 'danger')
         return redirect(url_for('fan.roster'))
+
+    # Add champion_title_display for individual tagteam view
+    if tagteam.get('Belt'):
+        belt_obj = get_belt_by_name(tagteam['Belt'])
+        if belt_obj:
+            tagteam['current_champion_title_display'] = belt_obj.get('Champion_Title', 'Champion')
+        else:
+            tagteam['current_champion_title_display'] = tagteam['Belt'] # Fallback to belt name
 
     return render_template('fan/tagteam.html', tagteam=tagteam, prefs=prefs)
 
@@ -241,11 +266,23 @@ def roster():
         # Add wrestlers to their division
         for wrestler in active_wrestlers:
             if wrestler.get('Division') == division_id:
+                if wrestler.get('Belt'):
+                    belt_obj = get_belt_by_name(wrestler['Belt'])
+                    if belt_obj:
+                        wrestler['current_champion_title_display'] = belt_obj.get('Champion_Title', 'Champion')
+                    else:
+                        wrestler['current_champion_title_display'] = wrestler['Belt'] # Fallback to belt name
                 roster_by_division[division_name]['wrestlers'].append(wrestler)
         
         # Add tag teams to their division
         for tagteam in active_tagteams:
             if tagteam.get('Division') == division_id:
+                if tagteam.get('Belt'):
+                    belt_obj = get_belt_by_name(tagteam['Belt'])
+                    if belt_obj:
+                        tagteam['current_champion_title_display'] = belt_obj.get('Champion_Title', 'Champion')
+                    else:
+                        tagteam['current_champion_title_display'] = tagteam['Belt'] # Fallback to belt name
                 roster_by_division[division_name]['tagteams'].append(tagteam)
 
     # Filter out divisions that have no active wrestlers or tagteams
@@ -335,6 +372,28 @@ def archive_by_year(year):
     all_events = load_events()
     archive_events = []
 
+    for event in all_events:
+        event_date_str = event.get('Date')
+        if event.get('Finalized') == True and event_date_str:
+            try:
+                event_year = datetime.datetime.strptime(event_date_str, '%Y-%m-%d').year
+                if event_year == year:
+                    archive_events.append(event)
+            except ValueError:
+                # Handle cases where date might be malformed, skip such events
+                continue
+    
+    # Sort archive events by date descending (newest first)
+    archive_events.sort(key=lambda e: datetime.datetime.strptime(e.get('Date', '1900-01-01'), '%Y-%m-%d'), reverse=True)
+
+    return render_template(
+        'fan/events_archive.html',
+        year=year,
+        events=archive_events,
+        prefs=prefs, # Pass prefs to the template
+        _slugify=_slugify # Pass _slugify to the template
+    )
+
 @fan_bp.route('/news')
 def news_list():
     """Renders the fan mode news index page."""
@@ -393,26 +452,4 @@ def view_news(news_id):
         'fan/news_view.html',
         news_post=news_post,
         prefs=prefs
-    )
-
-    for event in all_events:
-        event_date_str = event.get('Date')
-        if event.get('Finalized') == True and event_date_str:
-            try:
-                event_year = datetime.datetime.strptime(event_date_str, '%Y-%m-%d').year
-                if event_year == year:
-                    archive_events.append(event)
-            except ValueError:
-                # Handle cases where date might be malformed, skip such events
-                continue
-    
-    # Sort archive events by date descending (newest first)
-    archive_events.sort(key=lambda e: datetime.datetime.strptime(e.get('Date', '1900-01-01'), '%Y-%m-%d'), reverse=True)
-
-    return render_template(
-        'fan/events_archive.html',
-        year=year,
-        events=archive_events,
-        prefs=prefs, # Pass prefs to the template
-        _slugify=_slugify # Pass _slugify to the template
     )

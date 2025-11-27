@@ -131,6 +131,19 @@
     </fieldset>
 
     <fieldset class="form-section">
+        <legend><h3>Units</h3></legend>
+        <div class="form-group">
+            <label>Weight Unit</label>
+            <div class="radio-group">
+                <input type="radio" id="weight_unit_lbs" name="weight_unit" value="lbs." {% if prefs.weight_unit == 'lbs.' %}checked{% endif %}>
+                <label for="weight_unit_lbs">Pounds (lbs.)</label>
+                <input type="radio" id="weight_unit_kg" name="weight_unit" value="kg." {% if prefs.weight_unit == 'kg.' %}checked{% endif %}>
+                <label for="weight_unit_kg">Kilograms (kg.)</label>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="form-section">
         <legend><h3>AI Assistant Configuration</h3></legend>
         <div class="form-group">
             <label for="ai_provider">AI Provider</label>
@@ -158,6 +171,29 @@
             <label for="openai_api_key">OpenAI API Key</label>
             <input type="password" class="form-control" id="openai_api_key" name="openai_api_key" value="{{ prefs.openai_api_key }}">
             <small class="form-text text-muted">Enter your OpenAI API Key for GPT models.</small>
+        </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+        <legend><h3>Game Date Settings</h3></legend>
+        <div class="form-group">
+            <label>Game Date Mode</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="game_date_mode" id="game_date_mode_realtime" value="real-time" {% if prefs.game_date_mode == "real-time" %}checked{% endif %}>
+                <label class="form-check-label" for="game_date_mode_realtime">
+                    Use Real Time Date (Application uses today's actual date)
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="game_date_mode" id="game_date_mode_latest_event" value="latest-event-date" {% if prefs.game_date_mode == "latest-event-date" %}checked{% endif %}>
+                <label class="form-check-label" for="game_date_mode_latest_event">
+                    Use Latest Event/News Date (Application date advances with booked events/news)
+                </label>
+            </div>
+            {% if prefs.game_date_mode == "latest-event-date" %}
+                <p class="form-text text-muted mt-2">Current Game Date: <strong>{{ current_game_date }}</strong></p>
+            {% endif %}
+            <small class="form-text text-muted">Choose how the application determines its current date for calculations (e.g., reign durations).</small>
         </div>
     </fieldset>
 
@@ -250,6 +286,17 @@
 
     <hr class="subsection-divider">
 
+    <!-- Recalculate Tag Team Weights Section -->
+    <div class="form-group">
+        <label>Recalculate All Tag Team Weights</label>
+        <p>This will re-calculate the combined weight for all tag teams based on their current members' weights. This is useful if wrestler weights have changed or if you suspect an inconsistency.</p>
+        <form method="POST" action="{{ url_for('prefs.recalculate_tagteam_weights_route') }}">
+            <button type="submit" class="btn btn-info">Recalculate All Tag Team Weights</button>
+        </form>
+    </div>
+
+    <hr class="subsection-divider">
+
     <!-- Clear Temp Files Section -->
     <div class="form-group">
         <label>Clear Temporary Files</label>
@@ -273,30 +320,6 @@
         </form>
     </div>
 
-    <hr class="subsection-divider">
-
-    <!-- Delete All Data Section -->
-    <div class="form-group">
-        <label>Delete All League Data</label>
-        <p>This is a permanent, irreversible action. It will delete **all wrestlers, teams, belts, history, events, and news posts**. Use this to start a completely fresh league.</p>
-        <button id="delete-button" class="btn btn-danger btn-lg" onclick="document.getElementById('delete-confirmation').style.display='block'; this.style.display='none';">
-            Delete All League Data
-        </button>
-    </div>
-    <div id="delete-confirmation" style="display: none;">
-        <form method="POST" action="{{ url_for('prefs.delete_league') }}">
-            <div class="form-group">
-                <label for="confirmation-delete">To confirm, please type `DELETE` in the box below:</label>
-                <input type="text" id="confirmation-delete" name="confirmation" required>
-            </div>
-            <div class="action-buttons">
-                <button type="submit" class="btn btn-danger">I understand the consequences, delete everything</button>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-confirmation').style.display='none'; document.getElementById('delete-button').style.display='block';">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
 </fieldset>
 {% endblock %}
 
